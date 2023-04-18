@@ -6,3 +6,5 @@ data/
 figures/
 
 presentation/
+
+src/python/sklearn-gen/skgen/
