@@ -4,26 +4,33 @@ import seaborn as sns
 from matplotlib import pyplot as plt
 import os
 from itertools import combinations
+from pathlib import Path
+import re
 
-dir = "./predictor_selection_2/"
+dir = "/home/dibepa/.openmole/dibepa-bc3/webui/projects/BiomassDensityML/tuning_XGBR/bioclimatic_learning/random_kfolds/results_onlybioclim"
 flist = []
 
-# Each file is the last population of the GA used for predictor selection for each one of the 5 data folds.
-for file in os.listdir(dir):
-    if ".csv" in file:
-        if dir + file not in flist:
-            flist.append(dir+file)
-        else:
-            pass
+for path in Path(dir).iterdir():
+    if path.is_dir:
+        fold = path.name.split("_")[-1]
+        max_gen = 0
+        for file in Path(path).glob('*.csv'):
+            name = file.name
+            generation = int(re.search('population(.+?).csv', name).group(1))
+            if generation>max_gen:
+                max_gen = generation
+                gen_file = file
+        flist.append((fold,gen_file))
+
+print(flist)
+
 
 # Treat every fold independently to embrace possible differences in the best predictors.
-pselected = pd.DataFrame()
+selected = pd.DataFrame()
 
-for file in flist:
+for fold,file in flist:
     data = pd.read_csv(file)
-
-    foldId = file[file.index("fold")+len("fold")]
-
+    
     # #Plot the Pareto front.
     # sns.set_style("darkgrid", {"axes.facecolor": "0.925"})
     # sns.set_context(context="notebook",font_scale=1.1)
@@ -32,37 +39,66 @@ for file in flist:
     #             )
     # g.axes[0,0].set_xlabel("Number of predictors")
     # g.axes[0,0].set_ylabel("MSE")        
-    # plt.savefig(dir+"accuracy-simplicity-tradeoff-fold-"+foldId+".svg", format = "svg")
+    # plt.savefig("/home/dibepa/git/global.agb.ml/data/training/predictor_selection_onlybioclim/accuracy-simplicity-tradeoff-fold-"+fold+".svg", format = "svg")
     # plt.show()
 
     # Plot the occurrence of predictor combinations.
-    feat_cols = ["yt","tdq","twq","tcq","yp","pwm","pet","ai","tcov","bgr","ps","ts","ndvism","ndvif","ndviw","ndvisp","wavai","w","evolution$samples"]
-    
-    # Filter out fits with MSE larger than 
-    # data = data.drop(data[data["objective$error"]>1.18].index)
+    pred_cols = ["yt","tdq","twq","tcq","yp","pwm","pet","iso","bgr","ps","ts","mtwm","mdr","mtwq","mtcm","pcq","pdm","pdq","pwaq","pweq","tar"]
+
+    param_cols = ["yt","tdq","twq","tcq","yp","pwm","pet","iso","bgr","ps","ts","mtwm","mdr","mtwq","mtcm","pcq","pdm","pdq","pwaq","pweq","tar","e","md","mcw","mds","g","subsample","objective$error","evolution$samples"]
+
 
     npredictors = np.unique(data["objective$npredictors"])[1:] 
 
     for n in npredictors:
         datafilt = data[data["objective$npredictors"]==n]
-        datafilt = datafilt[feat_cols]
-        df = pd.DataFrame()
-        for index, row in datafilt.iterrows():
-            print(row)
-            row = row[row>0]
+        datafilt = datafilt[param_cols]
+        samples_df = pd.DataFrame()
+        error_df = pd.DataFrame()
 
+        for index, row in datafilt.iterrows():
+            
+            # Simplify samples name.
             samples = row["evolution$samples"]
             row = row.drop("evolution$samples")
+            error = row["objective$error"]
+            row = row.drop("objective$error")
 
-            predictors = [predictor for predictor in row.index]
+            row_pred = row[pred_cols]
+            # Remove non-selected predictors.
+            row_pred = row_pred[row_pred>0]
+
+            predictors = [predictor for predictor in row_pred.index]
 
             predictors = ('-').join(predictors)
 
-            df_row = pd.DataFrame([{"Predictors": predictors, "Samples" : samples}])
-            df = pd.concat([df,df_row],axis=0, ignore_index=True)
+            samples_row = pd.DataFrame([{"Predictors": predictors, "Samples" : samples}])
+            samples_df = pd.concat([samples_df,samples_row],axis=0, ignore_index=True)
 
-            pselected_row = pd.DataFrame([{"fold":foldId,"predictors":n,"combination": predictors, "samples" : samples}])
-            pselected = pd.concat([pselected,pselected_row], axis = 0 , ignore_index=True)
+            error_row = pd.DataFrame([{"Predictors": predictors,"Error":error, "e": row.e, "md":row.md, "mcw":row.mcw, "mds":row.mds, "g": row.g, "subsample":row.subsample}])
+            error_df = pd.concat([error_df,error_row], axis = 0 , ignore_index=True)
+
+        samples_df= samples_df.groupby("Predictors").sum("Samples").reset_index()
+        predictor_set = samples_df.loc[samples_df["Samples"].idxmax()]["Predictors"]
+        error_df = error_df[error_df.Predictors == predictor_set]
+        selected_hp = error_df.loc[error_df["Error"].idxmin()]
+        print(selected_hp)
+        error_val = selected_hp.Error
+
+        selected_row = pd.DataFrame([{
+            "fold":fold,
+            "predictors":n,
+            "error" : error_val,
+            "combination": selected_hp.Predictors,
+            "e" : selected_hp.e,
+            "md" : selected_hp.md,
+            "mcw" : selected_hp.mcw,
+            "mds" : selected_hp.mds,
+            "g" : selected_hp.g,
+            "subsample" : selected_hp.subsample
+        }])
+
+        selected = pd.concat([selected,selected_row], axis = 0 , ignore_index=True)
 
         # datafilt = datafilt.rename(columns={
         #     "yt" : "YT",
@@ -95,7 +131,12 @@ for file in flist:
         # plt.savefig(dir+"high.accuracy/selected-combinations-predictors-"+str(int(n))+"-fold-"+foldId+".svg", format = "svg")
         # plt.show()
 
-pselected.to_csv(dir+"best_predictors.csv")
-print(pselected)
+# selected.to_csv("/home/dibepa/git/global.agb.ml/data/training/predictor_selection_onlybioclim/best_predictors_hp.csv")
+
+best = selected.loc[selected.groupby("fold").error.idxmin()].reset_index(drop=True)
+best.to_csv("/home/dibepa/git/global.agb.ml/data/training/predictor_selection_onlybioclim/best_predictors_hp_absolute.csv",index=False)
+print(best)
+
+# print(selected)
 
 

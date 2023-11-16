@@ -8,3 +8,15 @@ figures/
 presentation/
 
 src/python/sklearn-gen/skgen/
+
+src/python/global_predicted_map/
+
+src/python/agb_distribution_fitting/figs/
+
+src/python/global_predicted_map_nofilter_tcov/
+
+src/python/rasterize_test/
+
+src/python/sklearn-gen/
+
+src/scala/

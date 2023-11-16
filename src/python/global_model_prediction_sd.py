@@ -1,0 +1,145 @@
+import numpy as np
+import pandas as pd
+from xgboost import XGBRegressor
+from sklearn.impute import KNNImputer
+from sklearn.base import TransformerMixin, BaseEstimator
+from sklearn.preprocessing import FunctionTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.ensemble import VotingRegressor
+from pathlib import Path
+import pickle
+import re
+
+datadir = "/home/dibepa/git/global.agb.ml/data/predict/predictor.data.onlybioclim/"
+# pickled_model = "/home/dibepa/git/global.agb.ml/data/training/predictor_selection_onlybioclim/abd_model_onlybioclim.pkl"
+pickled_model = "/home/dibepa/git/global.agb.ml/data/training/final_onlybioclim_with_notree/abd_model_onlybioclim_notrees.pkl"
+
+pd.set_option('use_inf_as_na',True)
+
+class BGRBinaryEncoding(BaseEstimator, TransformerMixin):
+    def __init__(self):
+        self
+    def fit(self, X , y=None):
+        return self
+    def transform(self, X):
+        df = X.copy()
+        df["bgr_tuple"] = [binary_encoding(t) for t in df.bgr] 
+        try:
+            df["bgr1"] , df["bgr2"], df["bgr3"] = df.bgr_tuple.str
+        except:
+            df["bgr1"] , df["bgr2"], df["bgr3"] = (np.nan,np.nan,np.nan)
+            df = df.dropna()
+
+        df = df.drop(["bgr_tuple","bgr"],axis="columns")
+        return df
+    
+# custom transformer for sklearn pipeline
+class ColumnExtractor(TransformerMixin, BaseEstimator):
+    def __init__(self, cols):
+        self.cols = cols
+
+    def transform(self, X):
+        return X[self.cols]
+
+    def fit(self, X, y=None):
+        return self    
+    
+class LogarithmizeWaterObservables(BaseEstimator, TransformerMixin):
+    def __init__(self, cols):
+        self.cols = cols
+    def fit(self, X , y=None):
+        return self
+    def transform(self, X):
+        df = X.copy()
+        log_preds = log_predictors(self.cols)
+        df[log_preds] = np.log(df[log_preds]+1)     
+        return df    
+
+def keep_predictor(plist,pname,pval):
+    if pval>0.5:
+        plist.append(pname)
+    return plist
+
+
+def build_predictor_list(predictor_dict):
+    plist = []
+    for predictor in predictor_dict:
+        plist = keep_predictor(plist,predictor,predictor_dict[predictor])
+    return plist    
+
+def func(x):
+    return np.log(x+1)
+
+def inverse_func(x):
+    return np.exp(x)-1
+
+def binary_encoding(bgr):
+    match bgr:
+        case "Palearctic":
+            return (0,0,0)
+        case "Indomalayan":
+            return (0,1,0)
+        case "Australasia":
+            return (0,0,1)
+        case "Nearctic":
+            return (0,1,1)
+        case "Afrotropic":
+            return (1,0,0)
+        case "Neotropic":
+            return (1,1,0)  
+        case _:
+            return np.nan               
+
+log_transformer = FunctionTransformer(func=func,inverse_func=inverse_func)
+
+def log_predictors(predictor_list):
+    all = ["yp","pwm","pet","ps","pcq","pdq","pwaq","pweq"]
+    return [f for f in all if f in predictor_list]
+
+
+def predictor_list(predictor_string):
+    pred = predictor_string.split("-")
+    return pred 
+
+
+#############################################################################
+
+
+with open(pickled_model, 'rb') as f:
+    model = pickle.load(f)
+
+for i,file in enumerate(Path(datadir).glob('*')):
+
+    window = re.findall("predictors_global_data(.*)",file.name)[0]
+    print(window)
+
+    filename = "/home/dibepa/git/global.agb.ml/data/predict/predicted.abd.onlybioclim/with.notree.sd/ABD_SD{}".format(window)
+
+    if not Path(filename).is_file(): 
+
+        prediction_data = pd.read_csv(file)
+
+        # prediction_data = prediction_data.drop(prediction_data[(prediction_data.bgr == "Oceania")|(prediction_data.bgr == "Antarctica")].index)
+
+        if len(prediction_data.index)>0:
+    
+            coords = prediction_data[["x","y"]]
+            X = prediction_data.drop(["x","y"],axis="columns")
+
+            X.replace([np.inf, -np.inf], np.nan, inplace=True)
+
+            try:
+
+                abd = [ m.predict(X) for m in model.estimators_ ]
+
+                sd_abd = np.std(abd,axis=0) 
+
+                abd_df = pd.DataFrame({"sd_abd":sd_abd})
+                
+                predicted = pd.concat([abd_df,coords], axis = "columns")
+
+                predicted.to_csv(filename,index=False)
+
+            except:
+                print("Could not make prediction.")
+                continue    

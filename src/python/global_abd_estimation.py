@@ -287,6 +287,43 @@ from abd_estimation import estimate_biomass_density
 # # Add P-PET
 # tallo["wavai"] = tallo["yp"]-tallo["pet"]
 
+"""
+01/08/2023: New dataset exclusively with bioclimatic variables.
+"""
+# tallo = gpd.read_file("/home/dibepa/git/global.agb.ml/data/training/tmp_preprocessed/tallo_bibgr_fullhcr_agb_bioclim_grouped.shp")
+
+# tallo = tallo.drop(["ndvism","ndvif","ndviw","ndvisp","wavai","tcov","ai"],axis="columns")
+
+# print(tallo)
+
+# # Add rest of bioclimatic data
+# bioclim_data = [
+#     ("/home/dibepa/Documents/worldclim_bioclim/HighResolution/wc2.1_30s_1970_2000_isothermality.tif","iso"),
+#     ("/home/dibepa/Documents/worldclim_bioclim/HighResolution/wc2.1_30s_1970_2000_max_temp_warmest_month.tif","mtwm"),
+#     ("/home/dibepa/Documents/worldclim_bioclim/HighResolution/wc2.1_30s_1970_2000_mean_diurnal_range.tif","mdr"),
+#     ("/home/dibepa/Documents/worldclim_bioclim/HighResolution/wc2.1_30s_1970_2000_mean_temp_warmest_quarter.tif","mtwq"),
+#     ("/home/dibepa/Documents/worldclim_bioclim/HighResolution/wc2.1_30s_1970_2000_min_temp_coldest_month.tif","mtcm"),
+#     ("/home/dibepa/Documents/worldclim_bioclim/HighResolution/wc2.1_30s_1970_2000_precipitation_coldest_quarter.tif","pcq"),
+#     ("/home/dibepa/Documents/worldclim_bioclim/HighResolution/wc2.1_30s_1970_2000_precipitation_driest_month.tif","pdm"),
+#     ("/home/dibepa/Documents/worldclim_bioclim/HighResolution/wc2.1_30s_1970_2000_precipitation_driest_quarter.tif","pdq"),
+#     ("/home/dibepa/Documents/worldclim_bioclim/HighResolution/wc2.1_30s_1970_2000_precipitation_warmest_quarter.tif","pwaq"),
+#     ("/home/dibepa/Documents/worldclim_bioclim/HighResolution/wc2.1_30s_1970_2000_precipitation_wettest_quarter.tif","pweq"),
+#     ("/home/dibepa/Documents/worldclim_bioclim/HighResolution/wc2.1_30s_1970_2000_temperature_annual_range.tif","tar")
+# ]
+
+# for data, name in bioclim_data:
+#     tallo = add_feature_from_raster(tallo, name, data, "float")
+
+
+# tallo.to_file("/home/dibepa/git/global.agb.ml/data/training/tmp_preprocessed/tallo_grouped_onlybioclim.shp",driver="ESRI Shapefile")
+
+
+
+# wet_month_precipitation         = "/home/dibepa/Documents/worldclim_bioclim/HighResolution/wc2.1_30s_1970_2000_precipitation_wettest_month.tif"
+
+
+
+
 # tallo.to_file("./temp_data/tallo_bibgr_fullhcr_agb_bioclim_grouped.shp",driver="ESRI Shapefile")
 
 
@@ -311,6 +348,8 @@ from abd_estimation import estimate_biomass_density
 
 # # Aggregate predictors by group membership: mean and coefficient of variation. 
 
+# tallo = gpd.read_file("/home/dibepa/git/global.agb.ml/data/training/tmp_preprocessed/tallo_grouped_onlybioclim.shp")
+
 # # Remove the geometry information.
 # tallo = pd.DataFrame(tallo.drop("geometry",axis="columns"))
 
@@ -319,11 +358,10 @@ from abd_estimation import estimate_biomass_density
 # print(tallo)
 
 # # Create the dictionary with aggregation functions.
-
 # aggfunc_dict = {}
 
 # # Columns to get mean and standard deviation: 
-# agg_cols = ["agb","yt","tdq","twq","tcq","yp","pwm","pet","ai","ts","ps","dens","tcov","ndvism","ndvif","ndviw","ndvisp","wavai"]
+# agg_cols = ["agb","yt","tdq","twq","tcq","yp","pwm","pet","iso","ts","ps","mtwm","mdr","mtwq","mtcm","pcq","pdm","pdq","pwaq","pweq","tar","dens"]
 
 # # Columns to get first value (same value for all the group):
 # id_cols = ["n_samples","bgr","bid"]
@@ -347,143 +385,175 @@ from abd_estimation import estimate_biomass_density
 # tallo_agg = tallo_agg.drop(std_cols,axis="columns")
 
 # print(tallo_agg)
-# tallo_agg.to_csv("./temp_data/grouped_predictors.csv")
+# tallo_agg.to_csv("/home/dibepa/git/global.agb.ml/data/training/tmp_preprocessed/grouped_predictors_onlybioclim.csv")
 
 # ####
 # # Create the learning dataset.
 # ####
 
-# tallo_agg = pd.read_csv("./temp_data/grouped_predictors.csv")
-# abd = pd.read_csv("./temp_data/abd_per_group_nonan.csv")
+# tallo_agg = pd.read_csv("/home/dibepa/git/global.agb.ml/data/training/tmp_preprocessed/grouped_predictors_onlybioclim.csv")
+# abd = pd.read_csv("/home/dibepa/git/global.agb.ml/data/training/tmp_preprocessed/abd_per_group_nonan.csv")
 
 
 # # Filter dataframes to keep only relevant columns for the learning process. 
 # abd = abd[["gid","mean_abd"]]
-# tallo_agg = tallo_agg[["gid","bgr","yt_mean","tdq_mean","twq_mean","tcq_mean","yp_mean","pwm_mean","pet_mean","ai_mean","ts_mean","ps_mean","dens_mean","tcov_mean","ndvism_mean","ndvif_mean","ndviw_mean","ndvisp_mean","wavai_mean","n_samples"]]
+# tallo_agg = tallo_agg[["gid","bgr","yt_mean","tdq_mean","twq_mean","tcq_mean","yp_mean","pwm_mean","pet_mean","iso_mean","ts_mean","ps_mean","dens_mean","mtwm_mean","mdr_mean","mtwq_mean","mtcm_mean","pcq_mean","pdm_mean","n_samples","pdq_mean","pwaq_mean","pweq_mean","tar_mean"]]
 
 # tallo_learn = abd.join(tallo_agg.set_index('gid'),on="gid")
 # print(tallo_learn)
-# tallo_learn.to_csv("./temp_data/tallo_learning.csv")
+# tallo_learn.to_csv("/home/dibepa/git/global.agb.ml/data/training/tmp_preprocessed/tallo_learning_onlybioclim.csv")
 
 ####
 # Add spatial information: group centroids.
 ####
 
-# group_centroids = gpd.read_file("./temp_data/group_centroids.shp")
-# tallo = pd.read_csv("./temp_data/tallo_learning.csv")
+# group_centroids = gpd.read_file("/home/dibepa/git/global.agb.ml/data/training/tmp_preprocessed/group_centroids.shp")
+# tallo = pd.read_csv("/home/dibepa/git/global.agb.ml/data/training/tmp_preprocessed/tallo_learning_onlybioclim.csv")
 # print(tallo)
 # tallo_learn = gpd.GeoDataFrame(tallo.join(group_centroids.set_index("gid"), on="gid")).drop("Unnamed: 0", axis="columns")
 # print(tallo_learn)
-# tallo_learn.to_file("./temp_data/tallo_learning_spatial.shp", driver = "ESRI Shapefile")
+# tallo_learn.to_file("/home/dibepa/git/global.agb.ml/data/training/tmp_preprocessed/tallo_learning_onlybioclim_spatial.shp", driver = "ESRI Shapefile")
 
 ####
 # Feature engeneering
 ####
 
-# tallo_learn = pd.read_csv("./temp_data/tallo_learning.csv")
-tallo_learn = gpd.read_file("./temp_data/tallo_learning_spatial.shp")
+# tallo_learn = pd.read_csv("/home/dibepa/git/global.agb.ml/data/training/tmp_preprocessed/tallo_learning_onlybioclim.csv")
+# tallo_learn = gpd.read_file("/home/dibepa/git/global.agb.ml/data/training/tmp_preprocessed/tallo_learning_onlybioclim_spatial.shp")
+
+# tallo_learn = tallo_learn.replace(-np.inf, np.nan)
+# tallo_learn = tallo_learn.replace(np.inf, np.nan)
+# tallo_learn = tallo_learn.replace(-9999.9999, np.nan)
+# tallo_learn = tallo_learn.replace("-9999.9999", np.nan)
+# tallo_learn = tallo_learn.replace(-9999, np.nan)
+# tallo_learn = tallo_learn.replace("-9999", np.nan)
+
+# tallo_learn.to_file("/home/dibepa/git/global.agb.ml/data/training/tmp_preprocessed/tallo_learning_onlybioclim_spatial.shp",driver="ESRI Shapefile")
 
 # Transform Biomass Density from kg/km² to Mg/ha: x10^-5.
-tallo_learn["mean_abd"] = tallo_learn["mean_abd"]*np.power(10.0,-5.0)
+# tallo_learn["mean_abd"] = tallo_learn["mean_abd"]*np.power(10.0,-5.0)
 
 
-# Remove Biomasses of less than 2 Mg/ha and more than 2000 Mg/ha.
-tallo_learn = tallo_learn.drop(tallo_learn[tallo_learn.mean_abd > 1000.0].index)
-tallo_learn = tallo_learn.drop(tallo_learn[tallo_learn.mean_abd < 2.0].index)
+# # Remove Biomasses of less than 2 Mg/ha and more than 1000 Mg/ha.
+# tallo_learn = tallo_learn.drop(tallo_learn[tallo_learn.mean_abd > 1000.0].index)
+# tallo_learn = tallo_learn.drop(tallo_learn[tallo_learn.mean_abd < 1.0].index)
 
-sns.histplot(data=tallo_learn, x="n_samples", log_scale = True)
-sns.histplot(data=tallo_learn, x="mean_abd", log_scale = True)
-plt.show()
+# sns.histplot(data=tallo_learn, x="n_samples", log_scale = True)
+# for col in tallo_learn.columns:
+#     if col!="bgr" and col!="gid" and col!="geometry":
+#         sns.histplot(data=tallo_learn, x=col, log_scale = False)
+#         plt.show()
 
-sns.scatterplot(data=tallo_learn, x="n_samples", y="mean_abd")
-plt.xscale("log")
-plt.yscale("log")
-plt.show()
+# sns.scatterplot(data=tallo_learn, x="n_samples", y="mean_abd")
+# plt.xscale("log")
+# plt.yscale("log")
+# plt.show()
 
 # Log-transform data with heavy-tail distributions: Biomass density and precipitation related predictors can be log-transformed. This has an impact in Random Forest regression.
-log_cols = ["mean_abd","yp_mean","pwm_mean","pet_mean","ai_mean","ps_mean"]
-for col in log_cols:
-    tallo_learn[col] = np.log(tallo_learn[col])
+# log_cols = ["mean_abd","yp_mean","pwm_mean","pet_mean","ps_mean","pcq","pdq","pdm","pwaq","pweq"]
+# for col in log_cols:
+#     tallo_learn[col] = np.log(tallo_learn[col])
 
-# Binary encoding of Biogeographic Realm.
+# # Binary encoding of Biogeographic Realm.
 
-# Binary encoding of biogeographical realm:
-# Palearctic   = 0 0 0
-# Indomalayan = 0 1 0
-# Australasia = 0 0 1
-# Nearctic    = 0 1 1
-# Afrotropic  = 1 0 0
-# Neotropic   = 1 1 0
+# # Binary encoding of biogeographical realm:
+# # Palearctic   = 0 0 0
+# # Indomalayan = 0 1 0
+# # Australasia = 0 0 1
+# # Nearctic    = 0 1 1
+# # Afrotropic  = 1 0 0
+# # Neotropic   = 1 1 0
 
-print(tallo_learn.bgr.value_counts())
-# Drop Oceania biogeographical realm as there is a single sample.
-tallo_learn = tallo_learn.drop(tallo_learn[tallo_learn.bgr=="Oceania"].index).reset_index(drop=True)
+# print(tallo_learn.bgr.value_counts())
+# # Drop Oceania biogeographical realm as there is a single sample.
+# tallo_learn = tallo_learn.drop(tallo_learn[tallo_learn.bgr=="Oceania"].index).reset_index(drop=True)
 
-tallo_learn["bgr1"] = np.nan
-tallo_learn["bgr2"] = np.nan
-tallo_learn["bgr3"] = np.nan
+# tallo_learn["bgr1"] = np.nan
+# tallo_learn["bgr2"] = np.nan
+# tallo_learn["bgr3"] = np.nan
 
-tallo_learn["bgr1"] = np.where(
-                (tallo_learn["bgr"] == "Afrotropic") | (tallo_learn["bgr"] == "Neotropic"),
-                 1, 0 )
-tallo_learn["bgr2"] = np.where(
-                (tallo_learn["bgr"] == "Indomalayan") | (tallo_learn["bgr"] == "Nearctic") | (tallo_learn["bgr"] == "Neotropic"),
-                 1, 0 )
-tallo_learn["bgr3"] = np.where(
-                (tallo_learn["bgr"] == "Nearctic") | (tallo_learn["bgr"] == "Australasia"),
-                 1, 0 )
+# tallo_learn["bgr1"] = np.where(
+#                 (tallo_learn["bgr"] == "Afrotropic") | (tallo_learn["bgr"] == "Neotropic"),
+#                  1, 0 )
+# tallo_learn["bgr2"] = np.where(
+#                 (tallo_learn["bgr"] == "Indomalayan") | (tallo_learn["bgr"] == "Nearctic") | (tallo_learn["bgr"] == "Neotropic"),
+#                  1, 0 )
+# tallo_learn["bgr3"] = np.where(
+#                 (tallo_learn["bgr"] == "Nearctic") | (tallo_learn["bgr"] == "Australasia"),
+#                  1, 0 )
 
-# Calculate sample weights based on the number of sampled trees in each group:
-# This is an open question. Is it more pertinent to put sample weights or to interpret the number of samples as a potential confidence measure? If sample weights should be put, probably a saturating function of the number of sampled trees is the best option. 
-def weights(ns,k):
-    return (ns/(ns+k))
+# # Calculate sample weights based on the number of sampled trees in each group:
+# # This is an open question. Is it more pertinent to put sample weights or to interpret the number of samples as a potential confidence measure? If sample weights should be put, probably a saturating function of the number of sampled trees is the best option. 
+# def weights(ns,k):
+#     return (ns/(ns+k))
 
-tallo_learn["wsample"] = tallo_learn["n_samples"].apply(lambda x: weights(x,50.0))
+# tallo_learn["wsample"] = tallo_learn["n_samples"].apply(lambda x: weights(x,50.0))
 
-# Drop tree-density, group Id, non-encoded biogeogrpahic realm and number of samples for the learning dataset.
-# tallo_learn = tallo_learn.drop(["dens_mean","bgr","Unnamed: 0","gid","n_samples"],axis="columns")
-tallo_learn = tallo_learn.drop(["dens_mean","bgr","gid","n_samples"],axis="columns")
+# # Drop tree-density, group Id, non-encoded biogeogrpahic realm and number of samples for the learning dataset.
+# # tallo_learn = tallo_learn.drop(["dens_mean","bgr","Unnamed: 0","gid","n_samples"],axis="columns")
+# tallo_learn = tallo_learn.drop(["dens_mean","gid","n_samples","Unnamed: 0"],axis="columns")
 
-# Remove column suffix for simplicity.
-tallo_learn = tallo_learn.rename(
-   columns = { 
-        "mean_abd" : "abd",
-        "yt_mean" : "yt",
-        "tdq_mean":"tdq",
-        "twq_mean":"twq",
-        "tcq_mean":"tcq",
-        "yp_mean":"yp",
-        "pwm_mean":"pwm",
-        "pet_mean":"pet",
-        "ai_mean":"ai",
-        "ts_mean":"ts",
-        "ps_mean":"ps",
-        "tcov_mean":"tcov",
-        "ndvism_mean":"ndvism",
-        "ndvif_mean":"ndvif",
-        "ndviw_mean":"ndviw",
-        "ndvisp_mean":"ndvisp",
-        "wavai_mean":"wavai"
-    }
-)
+# # Remove column suffix for simplicity.
+# tallo_learn = tallo_learn.rename(
+#    columns = { 
+#         "mean_abd" : "abd",
+#         "yt_mean" : "yt",
+#         "tdq_mean":"tdq",
+#         "twq_mean":"twq",
+#         "tcq_mean":"tcq",
+#         "yp_mean":"yp",
+#         "pwm_mean":"pwm",
+#         "pet_mean":"pet",
+#         "iso_mean":"iso",
+#         "ts_mean":"ts",
+#         "ps_mean":"ps",
+#         "mtwm_mean":"mtwm",
+#         "mdr_mean":"mdr",
+#         "mtwq_mean":"mtwq",
+#         "mtcm_mean":"mtcm",
+#         "pcq_mean":"pcq",
+#         "pdm_mean":"pdm",
+#         "pdq_mean":"pdq",
+#         "pwaq_mean":"pwaq",
+#         "pweq_mean":"pweq",
+#         "tar_mean":"tar"
+#     }
+# )
 
-print(tallo_learn)
-# tallo_learn.to_csv("./temp_data/tallo_learning_preprocessed.csv")
-tallo_learn.to_file("./temp_data/tallo_learning_preprocessed_spatial_under_1Mg.csv", driver="ESRI Shapefile")
+# print(tallo_learn)
+# tallo_learn.to_csv("/home/dibepa/git/global.agb.ml/data/training/tmp_preprocessed/tallo_learning_preprocessed_onlybioclim.csv")
+# tallo_learn.to_file("./temp_data/tallo_learning_preprocessed_spatial_under_1Mg.csv", driver="ESRI Shapefile")
 
-# Create 5 data folds for nested cross-validation.
-# tallo_learn = pd.read_csv("./temp_data/tallo_learning_preprocessed.csv")
+# Create 10 random folds for the outer loop of nested cross-validation.
+# tallo_learn = gpd.read_file("/home/dibepa/git/global.agb.ml/data/training/tmp_preprocessed/tallo_learning_preprocessed_spatial_under_1Mg.csv/tallo_learning_preprocessed_spatial_under_1Mg.shp")
 
-# rng = np.random.default_rng()
-# id_array = tallo_learn.index.to_numpy()
-# rng.shuffle(id_array)
+# tallo_learn["lon"] = tallo_learn.geometry.x
+# tallo_learn["lat"] = tallo_learn.geometry.y
 
-# n_folds = 5
-# splits_id = np.array_split(id_array,n_folds)
+# tallo_learn = tallo_learn.rename(
+#     columns = 
+#     {"ndvism_mea":"ndvism",
+#      "ndvisp_mea":"ndvisp"}
+# )
 
-# for i in range(n_folds):
-#     test = tallo_learn.iloc[splits_id[i]]
-#     train = tallo_learn.drop(splits_id[i], axis = 0)
-#     #print(train)
-#     test.to_csv("./training_data_XGBR/tallo_learning_preprocessed_outcvloop_test_fold_" + str(i+1) + ".csv",index=False)
-#     train.to_csv("./training_data_XGBR/tallo_learning_preprocessed_outcvloop_train_fold_" + str(i+1) + ".csv",index=False)
+# tallo_learn = pd.DataFrame(tallo_learn.drop(["wsample","geometry"],axis = 1))
+
+# tallo_learn.to_csv("/home/dibepa/git/global.agb.ml/data/training/preprocessed/abd_preprocessed_under_1Mgperha.csv")
+
+# print(tallo_learn)
+
+tallo_learn = gpd.read_file("/home/dibepa/git/global.agb.ml/data/training/tmp_preprocessed/tallo_learning_preprocessed_onlybioclim.csv")
+
+rng = np.random.default_rng()
+id_array = tallo_learn.index.to_numpy()
+rng.shuffle(id_array)
+
+n_folds = 10
+splits_id = np.array_split(id_array,n_folds)
+
+for i in range(n_folds):
+    test = tallo_learn.iloc[splits_id[i]]
+    train = tallo_learn.drop(splits_id[i], axis = 0)
+    #print(train)
+    test.to_csv("/home/dibepa/git/global.agb.ml/data/training/preprocessed_onlybioclim/outcvloop_test_fold_{}.csv".format(i+1) ,index=False)
+    train.to_csv("/home/dibepa/git/global.agb.ml/data/training/preprocessed_onlybioclim/outcvloop_train_fold_{}.csv".format(i+1) ,index=False)
